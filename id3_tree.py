@@ -4,8 +4,8 @@ from sys import exit, argv
 import time
 
 try: # attempt to import dependencies
-	import pandas as pd
-	import numpy as np
+	import pandas as pd # used to containerize examples
+	import numpy as np # used for some mathematics
 except ImportError: # if not found
 	print("\nModules could not be loaded.")
 	print("Ensure both `pandas` and `numpy` are installed before execution.\n")
@@ -52,7 +52,7 @@ def id3(df, t, f):
 			root[highest_ig][v] = s[v][t].value_counts().idxmax()
 		else: # otherwise branch has further subbranches = decision
 			if len(attr) - 1 == 0: # if no more attr to divide on
-				# entropy not 0, next branch isn't pure
+				# entropy not 0, next branch isn't pure, imperfect decision
 				root[highest_ig][v] = s[v][t].value_counts().idxmax()
 				return root
 			else: # if more attr to split on, can recurse
@@ -113,81 +113,6 @@ def make_split(df, t):
 		new_df[df_key] = df.groupby(t).get_group(df_key)
 	return new_df
 
-def count_leaves(dt, c=[0,0]):
-	"""
-	Count number of non-leaf and leaf branches.
-	
-	Parameter:
-	dt -- the decision tree
-	c -- a counter
-	
-	Return:
-	c -- a count for both non-leeaves and leaves
-	"""
-	c[0] += 1
-	leaves = dt.keys()
-	for leaf in leaves:
-		branches = dt[leaf].values()
-		for branch in branches:
-			if isinstance(branch, dict):
-				count_leaves(branch, c)
-			else:
-				c[1] += 1
-	return c
-	
-def load_csv(f):
-	"""
-	Loads CSV file into pandas dataframe.
-	.CSV file is organized such that decision is the last column and features
-	are other columns. The first row is the name of decision and features.
-	
-	An example .CSV might be:
-	F1 F2 F3 F4 F5 F6 D
-	 0  0  1  1  0  1 1
-	 1  0  1  1  0  1 0
-	 1  0  0  0  1  1 0
-	 1  1  0  1  1  0 1
-	
-	Where F1..Fn are attributes and D is the decision
-	
-	Parameter:
-	f -- the filename for the .CSV file
-	
-	Return:
-	df -- a dataframe of examples
-	"""
-	try:
-		df = pd.read_csv(f, dtype=str) # open file as parse CSV into dataframe
-	except:
-		print("\nData could not be loaded, ensure the arguments are correct.\n")
-		exit(1)
-	print(f"{f} was successfully loaded.")
-	return df
-
-def holdout(df, p):
-	"""
-	Splits a dataframe of examples into training and testing data.
-	
-	Parameter:
-	df -- a dataframe of examples
-	p -- proportion of training vs testing (0.00..1.00]
-	
-	Return:
-	train -- training examples
-	test -- testing examples
-	"""
-	if 0.00 < p < 1.00:
-		d = df.copy()
-		train = d.sample(frac=p) # split, and randomize
-		test = d.drop(train.index) # remove train data from df
-		if len(test) == 0:
-			print("Proportion of training examples is too high.\n")
-			exit(1)
-		return train, test
-	else:
-		print("\nThe proportion of training examples must be (0.00..1.00).\n")
-		exit(1)
-
 def find_accuracy(dt, t):
 	"""
 	Determines accuracy of the system.
@@ -222,10 +147,57 @@ def predict_decision(dt, e):
 	try:
 		branch = dt[split][e[split]]
 	except KeyError:
+		# attribute not found in split
 		return None
-	if not isinstance(branch, dict):
+	if not isinstance(branch, dict): # terminal leaf node/decision
 		return branch
-	return predict_decision(branch, e)
+	return predict_decision(branch, e) # recurse into sub-dict
+
+def holdout(df, p):
+	"""
+	Splits a dataframe of examples into training and testing data.
+	
+	Parameter:
+	df -- a dataframe of examples
+	p -- proportion of training vs testing (0.00..1.00]
+	
+	Return:
+	train -- training examples
+	test -- testing examples
+	"""
+	if 0.00 < p < 1.00:
+		d = df.copy()
+		train = d.sample(frac=p) # split, and randomize
+		test = d.drop(train.index) # remove train data from df
+		if len(test) == 0:
+			print("Proportion of training examples is too high.\n")
+			exit(1)
+		return train, test
+	else:
+		print("\nThe proportion of training examples must be (0.00..1.00).\n")
+		exit(1)
+
+def count_leaves(dt, c=[0,0]):
+	"""
+	Count number of non-leaf and leaf branches.
+	
+	Parameter:
+	dt -- the decision tree
+	c -- a counter
+	
+	Return:
+	c -- a count for both non-leeaves and leaves
+	"""
+	c[0] += 1
+	leaves = dt.keys()
+	for leaf in leaves:
+		branches = dt[leaf].values()
+		for branch in branches:
+			if isinstance(branch, dict):
+				count_leaves(branch, c)
+			else:
+				c[1] += 1
+	return c
 
 def print_tree(dt, indent=0):
 	"""
@@ -260,6 +232,35 @@ def print_statistics(dt, t, tr, te, trs, tes):
 	print("Took {:.2f} seconds to generate.".format(t))
 	print(f"Was able to classify {tr}% of training data.")
 	print(f"Was able to classify {te}% of testing data.\n")
+	
+def load_csv(f):
+	"""
+	Loads CSV file into pandas dataframe.
+	.CSV file is organized such that decision is the last column and features
+	are other columns. The first column is the name of decision and features.
+	
+	An example .CSV might be:
+	F1 F2 F3 F4 F5 F6 D
+	 0  0  1  1  0  1 1
+	 1  0  1  1  0  1 0
+	 1  0  0  0  1  1 0
+	 1  1  0  1  1  0 1
+	
+	Where F1..Fn are attributes and D is the decision
+	
+	Parameter:
+	f -- the filename for the .CSV file
+	
+	Return:
+	df -- a dataframe of examples
+	"""
+	try:
+		df = pd.read_csv(f, dtype=str) # open file as parse CSV into dataframe
+	except:
+		print("\nData could not be loaded, ensure the arguments are correct.\n")
+		exit(1)
+	print(f"{f} was successfully loaded.")
+	return df
 
 def get_data():
 	"""
@@ -286,7 +287,7 @@ if __name__ == '__main__':
 	dt = id3(train, decision_name, train.columns[:-1]) # get decision tree
 	end_time = time.time();
 	if int(argv[3]) == 1:
-		print(dt, "\n") # print decision tree as dict
+		print("\n", dt, "\n") # print decision tree as dict
 		print_tree(dt) # print decision tree
 		print()
 	t = end_time-start_time
