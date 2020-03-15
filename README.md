@@ -54,12 +54,12 @@ Using no arguments will remind the user of this. Irrespective of choice, a decis
 
 ```
 F1 F2 F3 F4 F5 F6 ... FN D
- 0  0  1  1  0  1 ... 1 1
- 1  0  1  1  0  1 ... 0 0
- 1  0  0  0  1  1 ... 1 0
- 1  1  0  1  1  0 ... 1 1
- ... ... ... ... ... ...
- 0  0  1  0  0  0 ... 0 1
+ 0  0  1  1  0  1 ... 1  1
+ 1  0  1  1  0  1 ... 0  0
+ 1  0  0  0  1  1 ... 1  0
+ 1  1  0  1  1  0 ... 1  1
+  ... ... ... ... ... ...
+ 0  0  1  0  0  0 ... 0  1
 ```
 
 Where `F1..FN` are some features, and `D` is some decision. The decision column must be the final column.
